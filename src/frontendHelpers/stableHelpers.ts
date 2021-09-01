@@ -1,4 +1,4 @@
-import { BigNumber } from '../utils/bignumber';
+import { BigNumber, bnum, scale, ZERO } from '../utils/bignumber';
 import * as stableMath from '../pools/stablePool/stableMath';
 
 /////////
@@ -10,43 +10,40 @@ import * as stableMath from '../pools/stablePool/stableMath';
 // an Add or Remove liquidity operation: The spot prices of BPT in tokens
 // are the same regardless.
 export function BPTForTokensZeroPriceImpact(
-    allBalances: BigNumber[],
+    balances: BigNumber[],
     decimals: number[],
     amounts: BigNumber[], // This has to have the same lenght as allBalances
     bptTotalSupply: BigNumber,
     amp: BigNumber
 ): BigNumber {
-    if (allBalances.length != amounts.length)
-        throw 'allBalances and amounts have to have same length';
-    const zero = new BigNumber(0);
-    let amountBPTOut = new BigNumber(0);
+    if (balances.length != amounts.length)
+        throw 'balances and amounts have to have same length';
     // Calculate the amount of BPT adding this liquidity would result in
     // if there were no price impact, i.e. using the spot price of tokenIn/BPT
 
-    // We need to scale down allBalances
-    const allBalancesDownScaled = [];
-    for (let i = 0; i < allBalances.length; i++) {
-        allBalancesDownScaled.push(
-            allBalances[i].times(new BigNumber(10).pow(-decimals[i]))
-        );
-    }
+    // We need to scale down balances and amounts
+    const balancesDownScaled = balances.map((balance, i) =>
+        scale(balance, -decimals[i])
+    );
+    const amountsDownScaled = amounts.map((amount, i) =>
+        scale(amount, -decimals[i])
+    );
 
-    for (let i = 0; i < allBalances.length; i++) {
-        // We need to scale down amounts
-        amounts[i] = amounts[i].times(new BigNumber(10).pow(-decimals[i]));
+    const amountBPTOut = amountsDownScaled.reduce((acc, amount, i) => {
         const poolPairData = {
             amp: amp,
-            allBalances: allBalancesDownScaled,
+            allBalances: balancesDownScaled,
             tokenIndexIn: i,
-            balanceOut: bptTotalSupply.times(new BigNumber(10).pow(-18)),
-            swapFee: zero,
+            balanceOut: scale(bptTotalSupply, -18),
+            swapFee: ZERO,
         };
         const BPTPrice = stableMath._spotPriceAfterSwapTokenInForExactBPTOut(
-            zero,
+            ZERO,
             poolPairData
         );
-        amountBPTOut = amountBPTOut.plus(amounts[i].div(BPTPrice));
-    }
+        return acc.plus(amount.div(BPTPrice));
+    }, ZERO);
+
     // We need to scale up the amount of BPT out
-    return amountBPTOut.times(new BigNumber(10).pow(18));
+    return scale(amountBPTOut, 18);
 }
