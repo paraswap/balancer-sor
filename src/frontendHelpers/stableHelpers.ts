@@ -14,19 +14,23 @@ export function BPTForTokensZeroPriceImpact(
     decimals: number[],
     amounts: BigNumber[], // This has to have the same lenght as allBalances
     bptTotalSupply: BigNumber,
-    amp: BigNumber
+    amp: BigNumber,
+    priceRates: BigNumber[] = balances.map(() => bnum(1))
 ): BigNumber {
-    if (balances.length != amounts.length)
-        throw 'balances and amounts have to have same length';
+    if (
+        balances.length != amounts.length ||
+        balances.length != priceRates.length
+    )
+        throw 'balances, amounts and priceRates have to have same length';
     // Calculate the amount of BPT adding this liquidity would result in
     // if there were no price impact, i.e. using the spot price of tokenIn/BPT
 
     // We need to scale down balances and amounts
     const balancesDownScaled = balances.map((balance, i) =>
-        scale(balance, -decimals[i])
+        scale(balance, -decimals[i]).times(priceRates[i])
     );
     const amountsDownScaled = amounts.map((amount, i) =>
-        scale(amount, -decimals[i])
+        scale(amount, -decimals[i]).times(priceRates[i])
     );
 
     const amountBPTOut = amountsDownScaled.reduce((acc, amount, i) => {
