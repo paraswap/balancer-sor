@@ -9,6 +9,7 @@ import {
     Swap,
     PoolBase,
     PoolPairBase,
+    PoolTypes,
 } from './types';
 import { WeightedPool } from './pools/weightedPool/weightedPool';
 import { StablePool } from './pools/stablePool/stablePool';
@@ -65,89 +66,20 @@ export function filterPoolsOfInterest(
         if (pool.tokensList.length === 0 || pool.tokens[0].balance === '0') {
             return;
         }
-        let newPool: WeightedPool | StablePool | ElementPool;
 
-        if (pool.poolType === 'Weighted')
-            newPool = new WeightedPool(
-                pool.id,
-                pool.address,
-                pool.swapFee,
-                pool.totalWeight,
-                pool.totalShares,
-                pool.tokens,
-                pool.tokensList
-            );
-        else if (pool.poolType === 'Stable')
-            newPool = new StablePool(
-                pool.id,
-                pool.address,
-                pool.amp,
-                pool.swapFee,
-                pool.totalShares,
-                pool.tokens,
-                pool.tokensList
-            );
-        else if (pool.poolType === 'Element') {
-            newPool = new ElementPool(
-                pool.id,
-                pool.address,
-                pool.swapFee,
-                pool.totalShares,
-                pool.tokens,
-                pool.tokensList,
-                pool.expiryTime,
-                pool.unitSeconds,
-                pool.principalToken,
-                pool.baseToken
-            );
-            newPool.setCurrentBlockTimestamp(currentBlockTimestamp);
-        } else if (pool.poolType === 'MetaStable') {
-            let metaNewPool = new MetaStablePool(
-                pool.id,
-                pool.address,
-                pool.amp,
-                pool.swapFee,
-                pool.totalShares,
-                pool.tokens,
-                pool.tokensList
-            );
-            newPool = metaNewPool;
-            if (pool.address === MULTIMETASTABLEPOOL[chainId].address) {
-                multiMetaStablePool = metaNewPool;
-            }
-        } else if (pool.poolType === 'LiquidityBootstrapping') {
-            // If an LBP doesn't have its swaps paused we treat it like a regular Weighted pool.
-            // If it does we just ignore it.
-            if (pool.swapEnabled === true)
-                newPool = new WeightedPool(
-                    pool.id,
-                    pool.address,
-                    pool.swapFee,
-                    pool.totalWeight,
-                    pool.totalShares,
-                    pool.tokens,
-                    pool.tokensList
-                );
-            else return;
-        } else if (pool.poolType === 'Linear') {
-            let newPool = new LinearPool(
-                pool.id,
-                pool.address,
-                pool.swapFee,
-                pool.totalShares,
-                pool.tokens,
-                pool.tokensList,
-                pool.wrappedIndex,
-                pool.target1,
-                pool.target2
-            );
+        const newPool:
+            | WeightedPool
+            | StablePool
+            | ElementPool
+            | LinearPool
+            | undefined = parseNewPool(pool, currentBlockTimestamp);
+        if (!newPool) return;
+
+        if (newPool.poolType === PoolTypes.Linear)
             linearPoolsDictByMain[pool.tokens[0].address] = newPool;
-            return;
-        } else {
-            console.error(
-                `Unknown pool type or type field missing: ${pool.poolType} ${pool.id}`
-            );
-            return;
+
+        if (pool.address === MULTIMETASTABLEPOOL[chainId].address) {
+            multiMetaStablePool = newPool as MetaStablePool;
         }
 
         let tokenListSet = new Set(pool.tokensList);
@@ -200,6 +132,91 @@ export function filterPoolsOfInterest(
     const hopTokens = [...hopTokensSet];
     linearPoolsInfo = [linearPoolsDictByMain, multiMetaStablePool];
     return [poolsDictionary, hopTokens, linearPoolsInfo];
+}
+
+export function parseNewPool(
+    pool: SubgraphPoolBase,
+    currentBlockTimestamp: number = 0
+): WeightedPool | StablePool | ElementPool | undefined {
+    let newPool: WeightedPool | StablePool | ElementPool;
+    if (pool.poolType === 'Weighted')
+        newPool = new WeightedPool(
+            pool.id,
+            pool.address,
+            pool.swapFee,
+            pool.totalWeight,
+            pool.totalShares,
+            pool.tokens,
+            pool.tokensList
+        );
+    else if (pool.poolType === 'Stable')
+        newPool = new StablePool(
+            pool.id,
+            pool.address,
+            pool.amp,
+            pool.swapFee,
+            pool.totalShares,
+            pool.tokens,
+            pool.tokensList
+        );
+    else if (pool.poolType === 'Element') {
+        newPool = new ElementPool(
+            pool.id,
+            pool.address,
+            pool.swapFee,
+            pool.totalShares,
+            pool.tokens,
+            pool.tokensList,
+            pool.expiryTime,
+            pool.unitSeconds,
+            pool.principalToken,
+            pool.baseToken
+        );
+        newPool.setCurrentBlockTimestamp(currentBlockTimestamp);
+    } else if (pool.poolType === 'MetaStable') {
+        newPool = new MetaStablePool(
+            pool.id,
+            pool.address,
+            pool.amp,
+            pool.swapFee,
+            pool.totalShares,
+            pool.tokens,
+            pool.tokensList
+        );
+    } else if (pool.poolType === 'LiquidityBootstrapping') {
+        // If an LBP doesn't have its swaps paused we treat it like a regular Weighted pool.
+        // If it does we just ignore it.
+        if (pool.swapEnabled === true)
+            newPool = new WeightedPool(
+                pool.id,
+                pool.address,
+                pool.swapFee,
+                pool.totalWeight,
+                pool.totalShares,
+                pool.tokens,
+                pool.tokensList
+            );
+        else return undefined;
+    } else if (pool.poolType === 'Linear') {
+        let newPool = new LinearPool(
+            pool.id,
+            pool.address,
+            pool.swapFee,
+            pool.totalShares,
+            pool.tokens,
+            pool.tokensList,
+            pool.wrappedIndex,
+            pool.target1,
+            pool.target2
+        );
+        return;
+    } else {
+        console.error(
+            `Unknown pool type or type field missing: ${pool.poolType} ${pool.id}`
+        );
+        return undefined;
+    }
+    return newPool;
 }
 
 /*

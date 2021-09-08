@@ -804,6 +804,9 @@ export function assertResults(
         wrapperSwapData.marketSp
     );
 
+    v2formatted.swapAmountForSwaps = wrapperSwapData.swapAmountForSwaps;
+    v2formatted.returnAmountFromSwaps = wrapperSwapData.returnAmountFromSwaps;
+
     // Wrapper and direct SOR code should have the same swaps
     expect(wrapperSwapData).to.deep.equal(v2formatted);
 
