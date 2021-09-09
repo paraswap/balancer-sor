@@ -6,6 +6,7 @@
     "module": "dist/index.esm.js",
     "types": "dist/index.d.ts",
     "scripts": {
+        "prepare": "yarn build",
         "build": "rollup -c",
         "prepack": "yarn build",
         "test": "TS_NODE_PROJECT='tsconfig.testing.json' nyc mocha -r ts-node/register test/*.spec.ts",
