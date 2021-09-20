@@ -18,7 +18,7 @@ export async function getOnChainBalances(
 ): Promise<SubgraphPoolBase[]> {
     if (subgraphPools.length === 0) return subgraphPools;
 
-    const abis = Object.values(
+    const abis: any = Object.values(
         // Remove duplicate entries using their names
         Object.fromEntries(
             [
@@ -46,7 +46,11 @@ export async function getOnChainBalances(
         multiPool.call(`${pool.id}.totalSupply`, pool.address, 'totalSupply');
 
         // TO DO - Make this part of class to make more flexible?
-        if (pool.poolType === 'Weighted') {
+        if (
+            pool.poolType === 'Weighted' ||
+            pool.poolType === 'LiquidityBootstrapping' ||
+            pool.poolType === 'Investment'
+        ) {
             multiPool.call(
                 `${pool.id}.weights`,
                 pool.address,
@@ -81,7 +85,7 @@ export async function getOnChainBalances(
         string,
         {
             amp?: string;
-            swapFee?: string;
+            swapFee: string;
             weights?: string[];
             poolTokens: {
                 tokens: string[];
@@ -107,7 +111,8 @@ export async function getOnChainBalances(
                     bnum(poolTokens.balances[i]),
                     -Number(T.decimals)
                 ).toString();
-                if (subgraphPools[poolId].poolType === 'Weighted') {
+                if (weights) {
+                    // Only expected for WeightedPools
                     T.weight = scale(bnum(weights[i]), -18).toString();
                 }
             });

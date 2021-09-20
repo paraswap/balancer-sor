@@ -5,7 +5,6 @@ import {
     NewPath,
     PoolDictionary,
     SwapTypes,
-    PairTypes,
     PoolBase,
     PoolPairBase,
     PoolTypes,
@@ -16,7 +15,7 @@ export function getHighestLimitAmountsForPaths(
     maxPools: number
 ): BigNumber[] {
     if (paths.length === 0) return [];
-    const limitAmounts = [];
+    const limitAmounts: BigNumber[] = [];
     for (let i = 0; i < maxPools; i++) {
         if (i < paths.length) {
             const limitAmount = paths[i].limitAmount;
@@ -172,8 +171,6 @@ export function getSpotPriceAfterSwap(
     swapType: SwapTypes,
     amount: BigNumber
 ): BigNumber {
-    const pairType = poolPairData.pairType;
-
     // TODO: check if necessary to check if amount > limitAmount
     if (swapType === SwapTypes.SwapExactIn) {
         if (poolPairData.balanceIn.isZero()) {
@@ -186,40 +183,17 @@ export function getSpotPriceAfterSwap(
         if (amount.gte(poolPairData.balanceOut)) return INFINITY;
     }
     if (swapType === SwapTypes.SwapExactIn) {
-        if (pairType === PairTypes.TokenToToken) {
-            return pool._spotPriceAfterSwapExactTokenInForTokenOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.TokenToBpt) {
-            return pool._spotPriceAfterSwapExactTokenInForBPTOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.BptToToken) {
-            return pool._spotPriceAfterSwapExactBPTInForTokenOut(
-                poolPairData,
-                amount
-            );
-        }
+        return pool._spotPriceAfterSwapExactTokenInForTokenOut(
+            poolPairData,
+            amount
+        );
     } else {
-        if (pairType === PairTypes.TokenToToken) {
-            return pool._spotPriceAfterSwapTokenInForExactTokenOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.TokenToBpt) {
-            return pool._spotPriceAfterSwapTokenInForExactBPTOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.BptToToken) {
-            return pool._spotPriceAfterSwapBPTInForExactTokenOut(
-                poolPairData,
-                amount
-            );
-        }
+        return pool._spotPriceAfterSwapTokenInForExactTokenOut(
+            poolPairData,
+            amount
+        );
     }
+    throw Error('Unsupported swap');
 }
 
 export function getDerivativeSpotPriceAfterSwapForPath(
@@ -332,8 +306,6 @@ export function getDerivativeSpotPriceAfterSwap(
     swapType: SwapTypes,
     amount: BigNumber
 ): BigNumber {
-    const pairType = poolPairData.pairType;
-
     // TODO: check if necessary to check if amount > limitAmount
     if (swapType === SwapTypes.SwapExactIn) {
         if (poolPairData.balanceIn.isZero()) {
@@ -346,40 +318,17 @@ export function getDerivativeSpotPriceAfterSwap(
         if (amount.gte(poolPairData.balanceOut)) return INFINITY;
     }
     if (swapType === SwapTypes.SwapExactIn) {
-        if (pairType === PairTypes.TokenToToken) {
-            return pool._derivativeSpotPriceAfterSwapExactTokenInForTokenOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.TokenToBpt) {
-            return pool._derivativeSpotPriceAfterSwapExactTokenInForBPTOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.BptToToken) {
-            return pool._derivativeSpotPriceAfterSwapExactBPTInForTokenOut(
-                poolPairData,
-                amount
-            );
-        }
+        return pool._derivativeSpotPriceAfterSwapExactTokenInForTokenOut(
+            poolPairData,
+            amount
+        );
     } else {
-        if (pairType === PairTypes.TokenToToken) {
-            return pool._derivativeSpotPriceAfterSwapTokenInForExactTokenOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.TokenToBpt) {
-            return pool._derivativeSpotPriceAfterSwapTokenInForExactBPTOut(
-                poolPairData,
-                amount
-            );
-        } else if (pairType === PairTypes.BptToToken) {
-            return pool._derivativeSpotPriceAfterSwapBPTInForExactTokenOut(
-                poolPairData,
-                amount
-            );
-        }
+        return pool._derivativeSpotPriceAfterSwapTokenInForExactTokenOut(
+            poolPairData,
+            amount
+        );
     }
+    throw Error('Unsupported swap');
 }
 
 // We need do pass 'pools' here because this function has to update the pools state
@@ -390,7 +339,7 @@ export function EVMgetOutputAmountSwap(
     swapType: SwapTypes,
     amount: BigNumber
 ): BigNumber {
-    const { pairType, balanceIn, balanceOut, tokenIn, tokenOut } = poolPairData;
+    const { balanceIn, balanceOut, tokenIn, tokenOut } = poolPairData;
 
     let returnAmount: BigNumber;
 
@@ -412,25 +361,11 @@ export function EVMgetOutputAmountSwap(
             pool.poolType === PoolTypes.MetaStable
         ) {
             // Will accept/return normalised values
-            if (pairType === PairTypes.TokenToToken) {
-                returnAmount = pool._exactTokenInForTokenOut(
-                    poolPairData,
-                    amount,
-                    true
-                );
-            } else if (pairType === PairTypes.TokenToBpt) {
-                returnAmount = pool._exactTokenInForBPTOut(
-                    poolPairData,
-                    amount,
-                    true
-                );
-            } else if (pairType === PairTypes.BptToToken) {
-                returnAmount = pool._exactBPTInForTokenOut(
-                    poolPairData,
-                    amount,
-                    true
-                );
-            }
+            returnAmount = pool._exactTokenInForTokenOut(
+                poolPairData,
+                amount,
+                true
+            );
         } else if (pool.poolType === PoolTypes.Element) {
             // TODO this will just be part of above once maths available
             returnAmount = getOutputAmountSwap(
@@ -439,6 +374,8 @@ export function EVMgetOutputAmountSwap(
                 swapType,
                 amount
             );
+        } else {
+            throw Error('Unsupported swap');
         }
     } else {
         // TODO we will be able to remove pooltype check once Element EVM maths is available
@@ -447,25 +384,11 @@ export function EVMgetOutputAmountSwap(
             pool.poolType === PoolTypes.Stable ||
             pool.poolType === PoolTypes.MetaStable
         ) {
-            if (pairType === PairTypes.TokenToToken) {
-                returnAmount = pool._tokenInForExactTokenOut(
-                    poolPairData,
-                    amount,
-                    true
-                );
-            } else if (pairType === PairTypes.TokenToBpt) {
-                returnAmount = pool._tokenInForExactBPTOut(
-                    poolPairData,
-                    amount,
-                    true
-                );
-            } else if (pairType === PairTypes.BptToToken) {
-                returnAmount = pool._BPTInForExactTokenOut(
-                    poolPairData,
-                    amount,
-                    true
-                );
-            }
+            returnAmount = pool._tokenInForExactTokenOut(
+                poolPairData,
+                amount,
+                true
+            );
         } else if (pool.poolType === PoolTypes.Element) {
             // TODO this will just be part of above once maths available
             returnAmount = getOutputAmountSwap(
@@ -474,6 +397,8 @@ export function EVMgetOutputAmountSwap(
                 swapType,
                 amount
             );
+        } else {
+            throw Error('Unsupported swap');
         }
     }
     // Update balances of tokenIn and tokenOut

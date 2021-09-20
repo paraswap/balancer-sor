@@ -1,5 +1,9 @@
 import { BigNumber } from './utils/bignumber';
 
+export type NoNullableField<T> = {
+    [P in keyof T]: NonNullable<T[P]>;
+};
+
 export enum SwapTypes {
     SwapExactIn,
     SwapExactOut,
@@ -18,12 +22,6 @@ export enum SwapPairType {
     HopOut,
 }
 
-export enum PairTypes {
-    BptToToken,
-    TokenToBpt,
-    TokenToToken,
-}
-
 export interface SwapOptions {
     gasPrice: BigNumber;
     swapGas: BigNumber;
@@ -33,16 +31,18 @@ export interface SwapOptions {
     forceRefresh: boolean;
 }
 
-export interface PoolPairBase {
-    balanceIn: BigNumber;
-    balanceOut: BigNumber;
+export type PoolPairBase = {
+    id: string;
+    address: string;
     poolType: PoolTypes;
-    pairType: PairTypes;
+    swapFee: BigNumber;
     tokenIn: string;
     tokenOut: string;
     decimalsIn: number;
     decimalsOut: number;
-}
+    balanceIn: BigNumber;
+    balanceOut: BigNumber;
+};
 
 export interface Swap {
     pool: string;
@@ -61,7 +61,7 @@ export interface SubgraphPoolBase {
     poolType: string;
     swapFee: string;
     totalShares: string;
-    tokens: SubGraphToken[];
+    tokens: SubgraphToken[];
     tokensList: string[];
 
     // Weighted & Element field
@@ -80,15 +80,14 @@ export interface SubgraphPoolBase {
     swapEnabled?: boolean;
 }
 
-export interface SubGraphToken {
+export type SubgraphToken = {
     address: string;
     balance: string;
-    decimals: string | number;
-    // Stable & Element field
-    weight?: string;
-    // MetaStablePool field
-    priceRate?: string;
-}
+    decimals: number;
+    priceRate: string;
+    // WeightedPool field
+    weight: string | null;
+};
 
 export interface SwapV2 {
     poolId: string;
@@ -154,27 +153,7 @@ export interface PoolBase {
         amount: BigNumber,
         exact: boolean
     ) => BigNumber;
-    _exactTokenInForBPTOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber,
-        exact: boolean
-    ) => BigNumber;
-    _exactBPTInForTokenOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber,
-        exact: boolean
-    ) => BigNumber;
     _tokenInForExactTokenOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber,
-        exact: boolean
-    ) => BigNumber;
-    _tokenInForExactBPTOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber,
-        exact: boolean
-    ) => BigNumber;
-    _BPTInForExactTokenOut: (
         poolPairData: PoolPairBase,
         amount: BigNumber,
         exact: boolean
@@ -183,23 +162,7 @@ export interface PoolBase {
         poolPairData: PoolPairBase,
         amount: BigNumber
     ) => BigNumber;
-    _spotPriceAfterSwapExactTokenInForBPTOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
-    _spotPriceAfterSwapExactBPTInForTokenOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
     _spotPriceAfterSwapTokenInForExactTokenOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
-    _spotPriceAfterSwapTokenInForExactBPTOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
-    _spotPriceAfterSwapBPTInForExactTokenOut: (
         poolPairData: PoolPairBase,
         amount: BigNumber
     ) => BigNumber;
@@ -207,23 +170,7 @@ export interface PoolBase {
         poolPairData: PoolPairBase,
         amount: BigNumber
     ) => BigNumber;
-    _derivativeSpotPriceAfterSwapExactTokenInForBPTOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
-    _derivativeSpotPriceAfterSwapExactBPTInForTokenOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
     _derivativeSpotPriceAfterSwapTokenInForExactTokenOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
-    _derivativeSpotPriceAfterSwapTokenInForExactBPTOut: (
-        poolPairData: PoolPairBase,
-        amount: BigNumber
-    ) => BigNumber;
-    _derivativeSpotPriceAfterSwapBPTInForExactTokenOut: (
         poolPairData: PoolPairBase,
         amount: BigNumber
     ) => BigNumber;
