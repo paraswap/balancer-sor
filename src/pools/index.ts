@@ -41,14 +41,15 @@ export function getOutputAmountSwap(
     pool: PoolBase,
     poolPairData: PoolPairBase,
     swapType: SwapTypes,
-    amount: BigNumber
+    amount: BigNumber,
+    exact: boolean = false
 ): BigNumber {
     // TODO: check if necessary to check if amount > limitAmount
     if (swapType === SwapTypes.SwapExactIn) {
         if (poolPairData.balanceIn.isZero()) {
             return ZERO;
         } else {
-            return pool._exactTokenInForTokenOut(poolPairData, amount, false);
+            return pool._exactTokenInForTokenOut(poolPairData, amount, exact);
         }
     } else {
         if (poolPairData.balanceOut.isZero()) {
@@ -56,7 +57,7 @@ export function getOutputAmountSwap(
         } else if (amount.gte(poolPairData.balanceOut)) {
             return INFINITY;
         } else {
-            return pool._tokenInForExactTokenOut(poolPairData, amount, false);
+            return pool._tokenInForExactTokenOut(poolPairData, amount, exact);
         }
     }
     throw Error('Unsupported swap');
